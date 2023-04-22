@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, flash
+from flask import Flask, request, render_template, redirect, flash, session
 from flask_debugtoolbar import DebugToolbarExtension
 from surveys import satisfaction_survey as survey
 
@@ -10,7 +10,7 @@ debug = DebugToolbarExtension(app)
 
 
 
-responses = []
+RESPONSES_KEY = "responses"
 
 
 @app.route('/')
@@ -21,14 +21,18 @@ def survey_start():
 @app.route("/start", methods=["POST"])
 def start_quest():
     
+    session[RESPONSES_KEY] = []
+
     return redirect("/questions/0")
 
 @app.route('/answer', methods=["POST"])
 def show_answers():
-
+    """display answer choices and handle response on submit"""
     choice = request.form["answer"]
-    
+
+    responses = session[RESPONSES_KEY]
     responses.append(choice)
+    session[RESPONSES_KEY] = responses
 
     if (len(responses) == len(survey.questions)):
         # They've answered all the questions! Thank them.
@@ -39,7 +43,10 @@ def show_answers():
 
 @app.route('/questions/<int:idx>')
 def show_question(idx):
-    "Show questions"
+    """Show questions"""
+
+    responses = session.get(RESPONSES_KEY)
+
     if (responses is None):
         # trying to access question page too soon
         return redirect("/")
